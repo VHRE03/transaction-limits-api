@@ -1,0 +1,44 @@
+# Database and Redis values are injected via OS environment variables
+# (docker-compose.yml uses this profile with the service hostnames).
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:dev-db-server}:${DB_PORT:5432}/${DB_NAME:transaction_limits_dev}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    # HikariCP pool
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+
+  # JPA & Hibernate
+  # Flyway is the ONLY owner of the schema: Hibernate just validates.
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  # Redis (docker-compose.yml points it to the redis-limits service).
+  data:
+    redis:
+      host: ${REDIS_HOST:redis-limits}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+  # Keep DTO field order (@JsonPropertyOrder) in the JSON output.
+  jackson:
+    mapper:
+      sort-properties-alphabetically: false
+
+# OpenAPI server: defaults to localhost so the Swagger UI "Try it out"
+# works from the local docker-compose stack; override it per environment.
+openapi:
+  server:
+    url: ${OPENAPI_SERVER_URL:http://localhost:8080}
+    description: Servidor de Desarrollo

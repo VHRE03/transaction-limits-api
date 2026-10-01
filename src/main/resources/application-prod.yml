@@ -1,0 +1,54 @@
+# Strict configuration (environment variables without defaults).
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    # HikariCP pool (sized for production)
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      idle-timeout: 30000
+      max-lifetime: 1800000
+
+  # JPA & Hibernate (optimization and safety)
+  # Flyway is the ONLY owner of the schema; Hibernate never touches it.
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  # Redis: mandatory environment variables, no defaults.
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 2s
+
+  # Keep DTO field order (@JsonPropertyOrder) in the JSON output.
+  jackson:
+    mapper:
+      sort-properties-alphabetically: false
+
+# The JWT secret is mandatory in production (HS256 requires >= 256 bits).
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+# Disabling Swagger UI in production is good practice (or protect it).
+springdoc:
+  swagger-ui:
+    enabled: false
+
+openapi:
+  server:
+    url: ${OPENAPI_SERVER_URL:https://api.vhre.com}
+    description: Servidor de Produccion

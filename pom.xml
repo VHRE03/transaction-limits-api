@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <!-- Latest STABLE version on Maven Central (verified 2026-09-30):
+             4.2.0-M2 is a milestone, not stable. Same version as loan-simulator-api,
+             fee-calculator-api and hive-ingest-service: keeps the corporate
+             baseline aligned. -->
+        <version>4.1.1</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <groupId>com.vhre</groupId>
+    <artifactId>transaction-limits-api</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>transaction-limits-api</name>
+    <description>Monolithic REST API for transaction limits management</description>
+    <url/>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection/>
+        <developerConnection/>
+        <tag/>
+        <url/>
+    </scm>
+
+    <properties>
+        <java.version>21</java.version>
+        <!-- Same versions as the workspace baseline (loan-simulator-api,
+             fee-calculator-api). -->
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <!-- Lombok 1.18.48 = first version with JDK 27 support (see README). -->
+        <lombok.version>1.18.48</lombok.version>
+        <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+        <!-- JJWT: latest release on Maven Central. Not managed by the Boot BOM. -->
+        <jjwt.version>0.13.0</jjwt.version>
+    </properties>
+
+    <repositories>
+        <!-- Internal VHRE starter published on GitHub Packages
+             (requires ~/.m2/settings.xml with the "github" server). -->
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/VHRE03/base-project-spring-boot</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- Internal VHRE starter: provides BaseEntity, BaseDTO, BaseMapper,
+             BaseService/BaseServiceImpl, BaseController and the GlobalExceptionHandler.
+             The exclusion avoids the class clash with swagger-annotations-jakarta
+             brought by springdoc 3.x (NoSuchMethodError: Schema.$dynamicRef). -->
+        <dependency>
+            <groupId>com.vhre</groupId>
+            <artifactId>base-project-spring-boot-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.swagger.core.v3</groupId>
+                    <artifactId>swagger-annotations</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
+
+        <!-- Monolith: no Kafka, no messaging. Plain Spring MVC only. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <!-- Bean validation. The internal starter declares validation as
+             "provided" (the consumer must supply it) and its BaseController
+             uses @Valid. spring-boot-starter-webmvc does NOT include it on
+             Boot 4.x: without this dependency every @Valid stays inert. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- springdoc 3.x: line aligned with Spring Boot 4.x (the 2.x line
+             targets Boot 3). Respects the starter's swagger-annotations
+             exclusion (see above). -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+
+        <!-- Flyway: versioned schema and data migrations.
+             WATCH OUT Spring Boot 4: the Flyway autoconfiguration lives in the
+             spring-boot-flyway module, hence spring-boot-starter-flyway is used
+             (it brings the module plus flyway-core). With flyway-core alone
+             Flyway stays silent: it does NOT run the migrations.
+             flyway-database-postgresql is mandatory since Flyway 10+ for
+             PostgreSQL. Versions managed by the Boot BOM (no explicit version). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- Security: stateless base (SecurityConfig). JJWT backs the JWT
+             authentication of the future auth module (filter not added yet). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Redis: distributed cache (Spring Cache beans in RedisCacheConfig). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Testing: JUnit 5 + Mockito + AssertJ + MockMvc arrive via the test
+             starters (transitive dependencies of spring-boot-starter-test). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testcontainers: integration tests against real PostgreSQL and Redis
+             (Docker required). Versions are managed by the Boot BOM: the
+             Testcontainers 2.x artifacts carry the "testcontainers-" prefix
+             and the Redis module is com.redis:testcontainers-redis. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.redis</groupId>
+            <artifactId>testcontainers-redis</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Stable JAR name (target/transaction-limits-api.jar): the Dockerfile
+             copies it as-is, independent of the project version. -->
+        <finalName>transaction-limits-api</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                    <version>${lombok.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>org.mapstruct</groupId>
+                                    <artifactId>mapstruct-processor</artifactId>
+                                    <version>${mapstruct.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok-mapstruct-binding</artifactId>
+                                    <version>${lombok-mapstruct-binding.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                    <version>${lombok.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>org.mapstruct</groupId>
+                                    <artifactId>mapstruct-processor</artifactId>
+                                    <version>${mapstruct.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok-mapstruct-binding</artifactId>
+                                    <version>${lombok-mapstruct-binding.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

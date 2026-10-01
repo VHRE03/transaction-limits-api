@@ -1,0 +1,15 @@
+# Minimal context for the multi-stage build: the image only needs pom.xml
+# and src/ (the JAR is built INSIDE the image by the Maven stage).
+.git
+.gitignore
+.gitattributes
+.idea
+.vscode
+.mvn
+mvnw
+mvnw.cmd
+target
+docker-compose.yml
+.env
+.env.example
+README.md

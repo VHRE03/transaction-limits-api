@@ -1,0 +1,100 @@
+# Full local stack: PostgreSQL + Redis + transaction-limits-api.
+#
+#   cp .env.example .env      # adjust credentials if you want
+#   docker compose up -d --build
+#
+# The API container waits for the PostgreSQL and Redis healthchecks before
+# starting (depends_on: condition: service_healthy).
+#
+# The app image is built INSIDE Docker (multi-stage Dockerfile). Because the
+# internal starter lives on GitHub Packages, the build receives the host
+# ~/.m2/settings.xml (server "github") as a BuildKit secret: it never gets
+# stored in the image layers.
+services:
+  postgres-limits:
+    image: postgres:15-alpine
+    container_name: postgres-limits-container
+    environment:
+      POSTGRES_DB: ${POSTGRES_LIMITS_DB}
+      POSTGRES_USER: ${POSTGRES_LIMITS_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_LIMITS_PASSWORD}
+    ports:
+      # Host port 5436: 5432 is usually taken by a native PostgreSQL, 5434 by
+      # the loan-simulator stack and 5435 by fee-calculator.
+      - "${POSTGRES_LIMITS_PORT}:5432"
+    volumes:
+      - pgdata-limits:/var/lib/postgresql/data
+    healthcheck:
+      # The API waits for the DB to be ready (depends_on: service_healthy):
+      # without this, a cold "compose up" can win the race against Postgres
+      # and Flyway fails at startup with a rejected connection.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_LIMITS_USER} -d ${POSTGRES_LIMITS_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - limits-network
+
+  redis-limits:
+    image: redis:7-alpine
+    container_name: redis-limits-container
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      # Host port 6380: 6379 is usually taken by a native Redis.
+      - "${REDIS_LIMITS_PORT}:6379"
+    volumes:
+      - redisdata-limits:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - limits-network
+
+  transaction-limits-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      secrets:
+        - maven_settings
+    image: transaction-limits-api:latest
+    container_name: transaction-limits-api-container
+    depends_on:
+      postgres-limits:
+        condition: service_healthy
+      redis-limits:
+        condition: service_healthy
+    environment:
+      # Dev profile: Swagger UI enabled and ddl-auto=validate (Flyway is the
+      # only owner of the schema). The Dockerfile defaults to prod; here we
+      # override it so the API can be tested from the host.
+      APP_PROFILE: dev
+      DB_HOST: postgres-limits
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_LIMITS_DB}
+      DB_USER: ${POSTGRES_LIMITS_USER}
+      DB_PASSWORD: ${POSTGRES_LIMITS_PASSWORD}
+      REDIS_HOST: redis-limits
+      REDIS_PORT: "6379"
+      # Dev-only value; set a real secret (JWT_SECRET) for any real deployment.
+      JWT_SECRET: ${JWT_SECRET:-change-me-compose-secret-not-for-production-32b}
+      JAVA_OPTS: ""
+    ports:
+      - "8080:8080"
+    networks:
+      - limits-network
+
+volumes:
+  pgdata-limits:
+  redisdata-limits:
+
+networks:
+  limits-network:
+    driver: bridge
+
+secrets:
+  # Maven settings with the "github" server (PAT read:packages) required to
+  # resolve com.vhre:base-project-spring-boot-starter during the image build.
+  maven_settings:
+    file: ${HOME}/.m2/settings.xml

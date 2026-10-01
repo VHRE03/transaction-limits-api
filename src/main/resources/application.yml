@@ -1,0 +1,44 @@
+# Base configuration shared by every profile. Environment-specific values
+# live in application-<profile>.yml (see the README for the full profile table).
+spring:
+  application:
+    name: transaction-limits-api
+
+  # Default active profile (local is forced so every developer must provide
+  # their own gitignored application-local.yml with local credentials).
+  profiles:
+    active: ${APP_PROFILE:local}
+
+  # Flyway: versions the PostgreSQL schema and data.
+  # Migrations live in src/main/resources/db/migration
+  # (see the README.md inside that folder).
+  # They run automatically on application startup, in order and exactly once.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  # Cache backend: Redis (connection details in application-<profile>.yml,
+  # serialization/TTL beans in RedisCacheConfig).
+  cache:
+    type: redis
+
+# JWT settings reserved for the authentication module (JJWT): the security
+# filter that reads them is added together with the auth endpoints.
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-me-local-secret-not-for-production-0123456789}
+      expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+# Service port. This project is a standalone monolith:
+# no gateway in front of it (no /limits prefix or similar).
+server:
+  port: ${SERVER_PORT:8080}
+
+# Global Springdoc / Swagger configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
