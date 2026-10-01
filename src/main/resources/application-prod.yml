@@ -43,8 +43,10 @@ app:
       secret: ${JWT_SECRET}
       expiration-ms: ${JWT_EXPIRATION_MS:3600000}
 
-# Disabling Swagger UI in production is good practice (or protect it).
+# Neither the OpenAPI JSON nor the Swagger UI is exposed in production.
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
     enabled: false
 

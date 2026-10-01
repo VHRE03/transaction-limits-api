@@ -122,8 +122,9 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
-        <!-- Security: stateless base (SecurityConfig). JJWT backs the JWT
-             authentication of the future auth module (filter not added yet). -->
+        <!-- Security: stateless base (SecurityConfig) with the JWT filter
+             (JwtAuthenticationFilter) and the dev-only token issuer
+             (DevTokenController, dev/local profiles only). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
